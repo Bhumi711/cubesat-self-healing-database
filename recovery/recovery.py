@@ -1,4 +1,5 @@
 from database.db import get_connection
+from database.integrity import calculate_checksum
 
 
 class TelemetryRecovery:
@@ -167,9 +168,7 @@ class TelemetryRecovery:
             original_version + 1
         )
 
-        new_checksum = (
-            f"RECOVERED-{telemetry_id}-{new_version}"
-        )
+        new_checksum = calculate_checksum(recovered_value)
 
         # ====================================================
         # SAVE ORIGINAL VERSION
@@ -206,7 +205,7 @@ class TelemetryRecovery:
                 value = ?,
                 checksum = ?,
                 version = ?,
-                status = 'RECOVERED',
+                status = 'VALID',
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
             """,
@@ -277,7 +276,7 @@ class TelemetryRecovery:
                 confidence,
 
             "status":
-                "RECOVERED"
+                "VALID"
         }
 
 
