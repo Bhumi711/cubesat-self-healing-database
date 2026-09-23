@@ -75,7 +75,7 @@ class PriorityEngine:
             score += 20
 
         elif phase == "RECOVERY":
-            score += 20
+            score += 40
 
         elif phase == "SAFE_MODE":
             score += 20

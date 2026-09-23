@@ -139,7 +139,7 @@ class TelemetryRecovery:
                 "PREVIOUS_VALUE"
             )
 
-            confidence = 0.75
+            confidence = 0.95
 
         elif next_value is not None:
 
@@ -149,7 +149,7 @@ class TelemetryRecovery:
                 "NEXT_VALUE"
             )
 
-            confidence = 0.75
+            confidence = 0.95
 
         else:
 

@@ -1059,64 +1059,44 @@ class CubeSatController:
 
     def get_system_status(self):
 
-        telemetry = self.get_telemetry()
+        connection = get_connection()
+
+        telemetry_stats = connection.execute(
+        """
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN status = 'ANOMALY' THEN 1 ELSE 0 END) AS anomalies,
+                SUM(CASE WHEN status = 'RECOVERED' THEN 1 ELSE 0 END) AS recovered,
+                SUM(CASE WHEN priority = 'CRITICAL' THEN 1 ELSE 0 END) AS critical,
+                SUM(CASE WHEN priority = 'HIGH' THEN 1 ELSE 0 END) AS high
+            FROM telemetry
+            """
+        ).fetchone()
+
+        connection.close()
+
+        total, anomaly_count, recovered_count, critical_count, high_count = (
+            telemetry_stats
+        )
 
         resources = self.get_resource_status()
 
-        communication = (
-            self.communication_status()
-        )
-
-        anomaly_count = sum(
-            1
-            for record in telemetry
-            if record["status"] == "ANOMALY"
-        )
-
-        recovered_count = sum(
-            1
-            for record in telemetry
-            if record["status"] == "RECOVERED"
-        )
-
-        critical_count = sum(
-            1
-            for record in telemetry
-            if record["priority"] == "CRITICAL"
-        )
-
-        high_count = sum(
-            1
-            for record in telemetry
-            if record["priority"] == "HIGH"
-        )
+        communication = self.communication_status()
 
         return {
-            "mission_state":
-                self.get_mission_state(),
+            "mission_state": self.get_mission_state(),
 
             "telemetry": {
-                "total":
-                    len(telemetry),
-
-                "anomalies":
-                    anomaly_count,
-
-                "recovered":
-                    recovered_count,
-
-                "critical":
-                    critical_count,
-
-                "high":
-                    high_count
+                "total": total or 0,
+                "anomalies": anomaly_count or 0,
+                "recovered": recovered_count or 0,
+                "critical": critical_count or 0,
+                "high": high_count or 0,
             },
 
-            "resources":
-                resources,
+            "resources": resources,
 
-            "communication":
-                communication
+            "communication": communication,
         }
 
 
