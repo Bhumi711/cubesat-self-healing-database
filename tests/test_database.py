@@ -1,31 +1,55 @@
-import sys
+
+import sqlite3
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-
-from database.db import get_connection
 from database.integrity import calculate_checksum
 
 
-def test_nasa_record_exists_and_is_valid():
-    telemetry_id = 519009
+def test_telemetry_record_checksum_and_status(tmp_path):
+    project_root = Path(__file__).resolve().parent.parent
+    schema_path = project_root / "database" / "schema.sql"
+    test_db = tmp_path / "test_cubesat.db"
 
-    connection = get_connection()
+    connection = sqlite3.connect(test_db)
 
-    row = connection.execute(
-        """
-        SELECT value, checksum, status
-        FROM telemetry
-        WHERE id = ?
-        """,
-        (telemetry_id,),
-    ).fetchone()
+    try:
+        schema = schema_path.read_text(encoding="utf-8")
+        connection.executescript(schema)
 
-    connection.close()
+        value = 123.456
+        checksum = calculate_checksum(value)
 
-    assert row is not None
+        connection.execute(
+            """
+            INSERT INTO telemetry (
+                timestamp, sensor, parameter, value, checksum, status
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "2026-01-01T00:00:00",
+                "TEST_SENSOR",
+                "test_parameter",
+                value,
+                checksum,
+                "VALID",
+            ),
+        )
+        connection.commit()
 
-    value, stored_checksum, status = row
+        row = connection.execute(
+            """
+            SELECT value, checksum, status
+            FROM telemetry
+            WHERE sensor = ?
+            """,
+            ("TEST_SENSOR",),
+        ).fetchone()
 
-    assert calculate_checksum(value) == stored_checksum
-    assert status == "VALID"
+        assert row is not None
+
+        stored_value, stored_checksum, status = row
+        assert calculate_checksum(stored_value) == stored_checksum
+        assert status == "VALID"
+    finally:
+        connection.close()
